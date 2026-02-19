@@ -12,6 +12,9 @@ import * as THREE from "three";
 import React from "react";
 import { useGLTF } from "@react-three/drei";
 import { GLTF } from "three-stdlib";
+import { useTexture } from "@react-three/fiber/webgpu";
+import { texture, fract} from "three/tsl";
+import { uv } from "three/tsl";
 
 type GLTFResult = GLTF & {
   nodes: {
@@ -27,6 +30,10 @@ export function Model(props: JSX.IntrinsicElements["group"]) {
   const { nodes, materials } = useGLTF(
     "/checkered_tile_floor-transformed.glb",
   ) as GLTFResult;
+
+  // const map = useTexture("/uv.png");
+  // materials.floor_texture.colorNode = texture(map, fract(uv()));
+
   return (
     <group
       {...props}
