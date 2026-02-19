@@ -34,6 +34,8 @@ export const Cube = () => {
   const materials = useMemo(() => {
     return Array.from({ length: GRID * GRID }, () => {
       const m = new MeshStandardNodeMaterial({ roughness: 0 });
+      m.side = THREE.DoubleSide;
+      m.transparent = true;
       const ca = float(0.0035);
 
       const n = texture(nTex, screenUV.mul(40));
@@ -50,6 +52,7 @@ export const Cube = () => {
       const b = viewportSharedTexture(vUv.sub(ca.mul(fresnel))).b;
 
       m.backdropNode = vec3(r, g, b).add(fresnel.mul(0.1));
+      m.opacityNode = 0.8;
 
       return m;
     });
