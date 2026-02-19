@@ -41,11 +41,26 @@ export function Model(props: JSX.IntrinsicElements["group"]) {
       rotation={[Math.PI / 2, 0, 0]}
       position={[0, 0, -200]}
     >
-      <mesh
-        geometry={nodes.Object_2.geometry}
-        material={materials.floor_texture}
-        rotation={[-Math.PI / 2, 0, 0]}
-      />
+      {Array.from({ length: 9 }).map((_, idx) => {
+        // Arrange planes in a 3x3 grid, size and spacing can be adjusted as needed
+        const gridSize = 3;
+        const spacing = 256; // Adjust to needed tile size (found by mesh bounds/desired overlap)
+        const row = Math.floor(idx / gridSize);
+        const col = idx % gridSize;
+        return (
+          <mesh
+            key={idx}
+            geometry={nodes.Object_2.geometry}
+            material={materials.floor_texture}
+            rotation={[-Math.PI / 2, 0, 0]}
+            position={[
+              (row - 1) * spacing,
+              0,
+              (col - 1) * spacing, // Centered grid
+            ]}
+          />
+        );
+      })}
     </group>
   );
 }

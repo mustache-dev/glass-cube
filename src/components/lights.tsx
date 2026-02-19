@@ -5,7 +5,6 @@ export const Lights = () => {
     <>
       <directionalLight
       castShadow
-      
       position={[1000, 100, 100]}
       intensity={1}
       color={"#ffffffff"}

@@ -5,10 +5,8 @@ import {
   dot,
   float,
   normalView,
-  normalWorld,
   positionViewDirection,
   pow,
-  refract,
   screenUV,
   texture,
   vec3,
@@ -17,8 +15,8 @@ import {
 import * as THREE from "three/webgpu";
 import { MeshStandardNodeMaterial, RepeatWrapping } from "three/webgpu";
 
-const GRID = 5;
-const SPACING = 4;
+const GRID = 4;
+const SPACING = 2.5;
 const HALF = ((GRID - 1) * SPACING) / 2;
 
 // Reusable vectors for depth sorting
@@ -28,39 +26,52 @@ const _camDir = new THREE.Vector3();
 export const Cube = () => {
   const { nodes } = useGLTF("/cube.glb");
   const nTex = useTexture("./noise.png");
-  nTex.wrapS = nTex.wrapT = RepeatWrapping;
+  const wrappedNoiseTexture = useMemo(() => {
+    const tex = nTex.clone();
+    tex.wrapS = tex.wrapT = RepeatWrapping;
+    tex.needsUpdate = true;
+    return tex;
+  }, [nTex]);
 
   // One material per cube so each gets its own viewportSharedTexture capture
   const materials = useMemo(() => {
-    return Array.from({ length: GRID * GRID }, () => {
-      const m = new MeshStandardNodeMaterial({ roughness: 0 });
-      const ca = float(0.0035);
+    return Array.from({ length: GRID * GRID * GRID }, () => {
+      const m = new MeshStandardNodeMaterial({ roughness: 0, transparent: true, side: THREE.FrontSide, opacity: 0.99 });
+      m.depthWrite = true;
+      const ca = float(0.005);
 
-      const n = texture(nTex, screenUV.mul(40));
+      const n = texture(wrappedNoiseTexture, screenUV.mul(40));
       const fresnel = pow(
         dot(normalView, positionViewDirection).oneMinus(),
         0.5,
       );
 
       const vUv = screenUV.add(
-        refract(normalView.add(n.r.mul(0.2)), normalWorld, 1.0005).mul(0.1),
+        normalView.xy.mul(0.1).add(n.rg.sub(0.5).mul(0.02)),
       );
       const r = viewportSharedTexture(vUv.add(ca.mul(fresnel))).r;
       const g = viewportSharedTexture(vUv).g;
       const b = viewportSharedTexture(vUv.sub(ca.mul(fresnel))).b;
 
-      m.backdropNode = vec3(r, g, b).add(fresnel.mul(0.1));
+      const tint = vec3(0.9412, 0.2902, 0.0); // #f04a00
+      m.backdropNode = vec3(r, g, b).mul(tint).add(fresnel.mul(0.1));
 
       return m;
     });
-  }, [nTex]);
+  }, [wrappedNoiseTexture]);
 
-  // Build a 5×5 grid of positions centred at origin
+  // Build a 5×5×5 grid of positions centred at origin
   const positions = useMemo<[number, number, number][]>(() => {
     const out: [number, number, number][] = [];
     for (let i = 0; i < GRID; i++) {
       for (let j = 0; j < GRID; j++) {
-        out.push([i * SPACING - HALF, 0, j * SPACING - HALF]);
+        for (let k = 0; k < GRID; k++) {
+          out.push([
+            i * SPACING - HALF,
+            j * SPACING - HALF,
+            k * SPACING - HALF,
+          ]);
+        }
       }
     }
     return out;
@@ -98,7 +109,7 @@ export const Cube = () => {
     }
 
     // Farthest first → lowest renderOrder → drawn first
-    entries.sort((a, b) => a.depth - b.depth);
+    entries.sort((a, b) => b.depth - a.depth);
 
     for (let order = 0; order < entries.length; order++) {
       const m = meshes[entries[order].idx];
